@@ -1,0 +1,39 @@
+telegram:
+  bot_token:
+  chat_id:
+
+network:
+  ethernet: enp2s0
+  wifi: wlp1s0
+
+cpu:
+  threshold: 90
+
+ram:
+  threshold: 90
+
+disk:
+  threshold: 90
+  paths:
+    - /
+
+temperature:
+  threshold: 80
+
+internet:
+  hosts:
+    - 1.1.1.1
+    - 8.8.8.8
+  timeout: 2
+  severity: critical
+
+alerting:
+  duration: 0
+  cooldown: 15m
+
+api:
+  enabled: true
+  host: 0.0.0.0
+  port: 8710
+
+interval: 30

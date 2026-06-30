@@ -1,0 +1,15 @@
+services:
+  meerkat:
+    build: .
+    container_name: meerkat
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config:/app/config
+      - ./state:/app/state
+    environment:
+      TZ: Asia/Kolkata
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}

@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+state/state.json
+state/history.db
+state/history.db-*
+state/*.tmp
