@@ -381,6 +381,15 @@ export function MeerkatApp({ page }: { page: Page }) {
     window.setTimeout(() => setToasts((current) => current.filter((toast) => toast.id !== id)), 8000);
   }
 
+  function persistSeenAlerts(nextSeen: Set<string>) {
+    setSeenAlerts(nextSeen);
+    localStorage.setItem("meerkatSeenAlerts", JSON.stringify([...nextSeen].slice(-100)));
+  }
+
+  function dismissToast(id: number) {
+    setToasts((current) => current.filter((item) => item.id !== id));
+  }
+
   async function refresh() {
     try {
       const [status, health, docker, sitesPayload] = await Promise.all([
@@ -393,7 +402,8 @@ export function MeerkatApp({ page }: { page: Page }) {
       setLastRefresh(Date.now());
       if (!selectedSiteName && sitesPayload.sites?.length) setSelectedSiteName(sitesPayload.sites[0].name);
 
-      const nextSeen = new Set(seenAlerts);
+      const storedSeen = new Set(JSON.parse(localStorage.getItem("meerkatSeenAlerts") || "[]") as string[]);
+      const nextSeen = new Set([...storedSeen, ...seenAlerts]);
       status.recent_events
         ?.filter((event: EventItem) => ["critical", "emergency", "warning"].includes(event.severity))
         .slice(0, 5)
@@ -407,8 +417,7 @@ export function MeerkatApp({ page }: { page: Page }) {
             }
           }
         });
-      setSeenAlerts(nextSeen);
-      localStorage.setItem("meerkatSeenAlerts", JSON.stringify([...nextSeen].slice(-100)));
+      persistSeenAlerts(nextSeen);
     } catch {
       showToast("Backend unavailable", "Start the Python monitor API on port 8710.");
     }
@@ -765,7 +774,7 @@ export function MeerkatApp({ page }: { page: Page }) {
               <div className="event-title">{toast.title}</div>
               <div className="event-body">{toast.body}</div>
             </div>
-            <button aria-label="Dismiss notification" onClick={() => setToasts((current) => current.filter((item) => item.id !== toast.id))}>
+            <button aria-label="Dismiss notification" onClick={() => dismissToast(toast.id)}>
               x
             </button>
           </div>
