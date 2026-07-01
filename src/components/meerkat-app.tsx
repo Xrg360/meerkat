@@ -214,6 +214,44 @@ function Summary({ data }: { data: DataState }) {
   );
 }
 
+function QuickStats({ sites }: { sites: SitesPayload | null }) {
+  const unknown = sites ? Math.max(0, sites.total - sites.up - sites.down) : 0;
+  const items = sites
+    ? [
+        ["Up", sites.up, "good"],
+        ["Down", sites.down, "bad"],
+        ["Unknown", unknown, ""],
+        ["Total", sites.total, ""],
+      ]
+    : null;
+
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h3>Quick Stats</h3>
+        <span className="pill">HTTP monitors</span>
+      </div>
+      <div className="card-body">
+        <div className="grid quick-stats">
+          {items
+            ? items.map(([label, value, tone]) => (
+                <div className={`quick-stat ${tone}`} key={label}>
+                  <div className="muted">{label}</div>
+                  <strong>{value}</strong>
+                </div>
+              ))
+            : skeletonStats.map((_, index) => (
+                <div className="quick-stat" key={index}>
+                  <div className="skeleton sk-line short" />
+                  <div className="skeleton sk-value" />
+                </div>
+              ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function MetricRow({ name, value, suffix = "%" }: { name: string; value: number; suffix?: string }) {
   const rounded = Math.round(value || 0);
   const tone = rounded >= 90 ? "bad" : rounded >= 75 ? "warn" : "";
@@ -504,8 +542,14 @@ export function MeerkatApp({ page }: { page: Page }) {
             </div>
           </div>
           <div className="top-actions">
-            <Link href="/monitoring" className="primary">
+            <Link href="/" className={page === "home" ? "active" : ""}>
+              Home
+            </Link>
+            <Link href="/monitoring" className={page === "monitoring" ? "primary" : ""}>
               Monitoring
+            </Link>
+            <Link href="/settings" className={page === "settings" ? "active" : ""}>
+              Settings
             </Link>
             <button onClick={refresh}>Refresh</button>
           </div>
@@ -514,55 +558,76 @@ export function MeerkatApp({ page }: { page: Page }) {
         {page === "home" ? (
           <>
             <Summary data={data} />
-            <div className="grid two">
-              <section className="card">
-                <div className="card-head">
-                  <h3>Pinned Monitors</h3>
-                  <Link className="pill" href="/settings">
-                    Choose
-                  </Link>
-                </div>
-                <div className="card-body">
-                  <div className="site-list">
-                    {data.sites
-                      ? homeSites.length
-                        ? homeSites.map((site) => <SiteCard key={site.name} site={site} onSelect={selectSite} />)
-                        : <div className="empty">No monitors yet.</div>
-                      : skeletonList.map((_, index) => <div className="skeleton" style={{ height: 68 }} key={index} />)}
+            <div className="grid home-layout">
+              <div className="grid">
+                <QuickStats sites={data.sites} />
+                <HealthCard health={data.health} />
+              </div>
+              <div className="grid">
+                <section className="card">
+                  <div className="card-head">
+                    <h3>Pinned Monitors</h3>
+                    <Link className="pill" href="/settings">
+                      Choose
+                    </Link>
                   </div>
-                </div>
-              </section>
-              <section className="card">
-                <div className="card-head">
-                  <h3>Active Alerts</h3>
-                  <span className="pill">{data.status?.alerts_silenced ? "Silenced" : "Active"}</span>
-                </div>
-                <div className="card-body">
-                  {data.status ? (
-                    data.status.active_alerts.length ? (
-                      data.status.active_alerts.map((alert) => (
-                        <div className="event critical" key={alert}>
-                          <div className="event-title">{alert}</div>
-                          <div className="event-meta">currently active</div>
-                        </div>
-                      ))
+                  <div className="card-body">
+                    <div className="site-list">
+                      {data.sites
+                        ? homeSites.length
+                          ? homeSites.map((site) => <SiteCard key={site.name} site={site} onSelect={selectSite} />)
+                          : <div className="empty">No monitors yet.</div>
+                        : skeletonList.map((_, index) => <div className="skeleton" style={{ height: 68 }} key={index} />)}
+                    </div>
+                  </div>
+                </section>
+                <section className="card">
+                  <div className="card-head">
+                    <h3>Active Alerts</h3>
+                    <span className="pill">{data.status?.alerts_silenced ? "Silenced" : "Active"}</span>
+                  </div>
+                  <div className="card-body">
+                    {data.status ? (
+                      data.status.active_alerts.length ? (
+                        data.status.active_alerts.map((alert) => (
+                          <div className="event critical" key={alert}>
+                            <div className="event-title">{alert}</div>
+                            <div className="event-meta">currently active</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="empty">No active alerts.</div>
+                      )
                     ) : (
-                      <div className="empty">No active alerts.</div>
-                    )
-                  ) : (
-                    <>
-                      <div className="skeleton sk-line" />
-                      <div className="skeleton sk-line medium" />
-                    </>
-                  )}
-                </div>
-              </section>
+                      <>
+                        <div className="skeleton sk-line" />
+                        <div className="skeleton sk-line medium" />
+                      </>
+                    )}
+                  </div>
+                </section>
+              </div>
             </div>
           </>
         ) : null}
 
         {page === "monitoring" ? (
-          <div className="grid two">
+          <div className="grid monitoring-layout">
+            <section className="card">
+              <div className="card-head">
+                <h3>Monitors</h3>
+                <button onClick={removeSelectedSite}>Remove</button>
+              </div>
+              <div className="card-body">
+                <div className="site-list compact">
+                  {data.sites
+                    ? sites.length
+                      ? sites.map((site) => <SiteCard key={site.name} site={site} onSelect={selectSite} />)
+                      : <div className="empty">No monitors yet.</div>
+                    : skeletonList.map((_, index) => <div className="skeleton" style={{ height: 68 }} key={index} />)}
+                </div>
+              </div>
+            </section>
             <div className="grid">
               <section className="card">
                 <div className="card-body">
@@ -604,6 +669,7 @@ export function MeerkatApp({ page }: { page: Page }) {
                   <LatencyChart site={selectedSite} />
                 </div>
               </section>
+              <HealthCard health={data.health} />
               <section className="card">
                 <div className="card-head">
                   <h3>Add Site</h3>
@@ -619,24 +685,6 @@ export function MeerkatApp({ page }: { page: Page }) {
                   </div>
                 </div>
               </section>
-            </div>
-            <div className="grid">
-              <section className="card">
-                <div className="card-head">
-                  <h3>Sites</h3>
-                  <button onClick={removeSelectedSite}>Remove selected</button>
-                </div>
-                <div className="card-body">
-                  <div className="site-list">
-                    {data.sites
-                      ? sites.length
-                        ? sites.map((site) => <SiteCard key={site.name} site={site} onSelect={selectSite} />)
-                        : <div className="empty">No monitors yet.</div>
-                      : skeletonList.map((_, index) => <div className="skeleton" style={{ height: 68 }} key={index} />)}
-                  </div>
-                </div>
-              </section>
-              <HealthCard health={data.health} />
             </div>
           </div>
         ) : null}

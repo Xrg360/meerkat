@@ -191,6 +191,7 @@ h3 {
   width: auto;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .top-actions a,
@@ -199,11 +200,17 @@ h3 {
   min-height: 38px;
   display: inline-flex;
   align-items: center;
+  gap: 7px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
   padding: 0 12px;
   font-weight: 800;
+}
+
+.top-actions a.active {
+  border-color: rgba(22, 185, 112, 0.35);
+  background: rgba(22, 185, 112, 0.12);
 }
 
 .primary {
@@ -225,6 +232,16 @@ h3 {
 
 .two {
   grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  align-items: start;
+}
+
+.monitoring-layout {
+  grid-template-columns: 340px minmax(0, 1fr);
+  align-items: start;
+}
+
+.home-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.75fr);
   align-items: start;
 }
 
@@ -334,7 +351,15 @@ h3 {
   gap: 10px;
 }
 
+.site-list.compact {
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+  padding-right: 2px;
+}
+
 .site-row {
+  width: 100%;
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
@@ -363,17 +388,42 @@ h3 {
 
 .bars {
   display: grid;
-  grid-template-columns: repeat(24, minmax(0, 1fr));
+  grid-template-columns: repeat(20, minmax(0, 1fr));
   gap: 3px;
   min-width: 0;
+  max-width: 100%;
   margin-top: 10px;
 }
 
 .bars span {
-  height: 22px;
+  height: 18px;
   border-radius: 99px;
   background: var(--brand);
   min-width: 0;
+}
+
+.quick-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.quick-stat {
+  padding: 14px;
+  text-align: center;
+}
+
+.quick-stat strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.quick-stat.good strong {
+  color: var(--brand-dark);
+}
+
+.quick-stat.bad strong {
+  color: var(--bad);
 }
 
 .bars span.down {
@@ -611,8 +661,15 @@ h3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .two {
+  .two,
+  .monitoring-layout,
+  .home-layout {
     grid-template-columns: 1fr;
+  }
+
+  .site-list.compact {
+    max-height: none;
+    overflow: visible;
   }
 }
 
@@ -638,7 +695,7 @@ h3 {
   .top-actions {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .top-actions a,
@@ -648,6 +705,7 @@ h3 {
   }
 
   .summary,
+  .quick-stats,
   .metric-cards,
   .settings-grid,
   .form-grid {
