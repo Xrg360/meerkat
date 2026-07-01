@@ -26,9 +26,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=web-build /usr/local/bin/node /usr/local/bin/node
-COPY --from=web-build /usr/local/bin/npm /usr/local/bin/npm
-COPY --from=web-build /usr/local/bin/npx /usr/local/bin/npx
-COPY --from=web-build /usr/local/lib/node_modules /usr/local/lib/node_modules
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -45,4 +42,4 @@ RUN mkdir -p /app/state
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -fsS http://127.0.0.1:8710/ >/dev/null && curl -fsS http://127.0.0.1:8711/health >/dev/null || exit 1
 
-CMD ["sh", "-c", "python app.py & npm run start"]
+CMD ["sh", "-c", "python app.py & exec node node_modules/next/dist/bin/next start -p 8710"]
