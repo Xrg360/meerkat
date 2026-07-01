@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 
+from monitors.actions import ActionService
 from monitors.alerts import AlertManager
 from monitors.api import ApiServer
 from monitors.commands import TelegramCommandMonitor
@@ -18,6 +19,7 @@ from monitors.history import HistoryStore
 from monitors.internet import check_internet
 from monitors.network import check_network
 from monitors.ram import check_ram
+from monitors.sites import check_sites
 from monitors.state import StateStore
 from monitors.status import StatusService
 from monitors.telegram import TelegramNotifier
@@ -58,14 +60,15 @@ def main() -> int:
     history = HistoryStore(str(HISTORY_PATH))
     notifier = TelegramNotifier(config, state)
     alerts = AlertManager(config, state, notifier, history)
+    action_service = ActionService(config, state, history)
     status_service = StatusService(config, state, history)
     stopped = Event()
 
     docker_monitor = DockerEventMonitor(state, alerts)
     docker_monitor.start()
-    command_monitor = TelegramCommandMonitor(config, state, notifier, status_service)
+    command_monitor = TelegramCommandMonitor(config, state, notifier, status_service, action_service)
     command_monitor.start()
-    api_server = ApiServer(config, status_service)
+    api_server = ApiServer(config, status_service, action_service)
     api_server.start()
 
     def handle_signal(signum: int, _frame: Any) -> None:
@@ -95,6 +98,7 @@ def main() -> int:
         ("ram", check_ram),
         ("disk", check_disk),
         ("temperature", check_temperature),
+        ("sites", check_sites),
     ]
 
     while not stopped.is_set():

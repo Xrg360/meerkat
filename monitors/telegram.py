@@ -36,14 +36,15 @@ class TelegramNotifier:
             response = requests.post(url, json=payload, timeout=10)
             response.raise_for_status()
         except requests.RequestException as exc:
-            logging.error("Telegram send failed: %s", exc)
+            response_text = getattr(getattr(exc, "response", None), "text", "")
+            logging.error("Telegram send failed: %s %s", exc, response_text)
 
     def send_alert(self, alert: Any, force: bool = False) -> None:
         labels = {
-            "info": "INFO",
-            "warning": "WARNING",
-            "critical": "CRITICAL",
-            "emergency": "EMERGENCY",
+            "info": "ℹ️ INFO",
+            "warning": "⚠️ WARNING",
+            "critical": "🚨 CRITICAL",
+            "emergency": "🆘 EMERGENCY",
         }
         heading = labels.get(alert.severity, alert.severity.upper())
         self.send(f"{heading}: {alert.title}\n\n{alert.body}", force=force)

@@ -1,5 +1,6 @@
 import unittest
 
+from monitors.actions import ActionService
 from monitors.alerts import AlertManager
 
 
@@ -63,6 +64,16 @@ class AlertManagerTests(unittest.TestCase):
         manager.event("meerkat.boot", "meerkat", "info", "boot", "body", force=True)
 
         self.assertTrue(notifier.alerts[0][1])
+
+
+class ActionServiceTests(unittest.TestCase):
+    def test_blocks_meerkat_restart_by_default(self):
+        service = ActionService({"actions": {"enabled": True}}, FakeState(), None)
+
+        result = service.restart_container("meerkat")
+
+        self.assertFalse(result["ok"])
+        self.assertIn("blocked", result["error"])
 
 
 if __name__ == "__main__":

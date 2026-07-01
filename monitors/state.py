@@ -25,9 +25,17 @@ class StateStore:
             self.data = {}
 
     def save(self) -> None:
+        payload = json.dumps(self.data, indent=2, sort_keys=True)
         temp_path = self.path.with_suffix(".tmp")
-        temp_path.write_text(json.dumps(self.data, indent=2, sort_keys=True), encoding="utf-8")
-        temp_path.replace(self.path)
+        temp_path.write_text(payload, encoding="utf-8")
+        try:
+            temp_path.replace(self.path)
+        except PermissionError:
+            self.path.write_text(payload, encoding="utf-8")
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     def get(self, key: str, default: Any = None) -> Any:
         with self.lock:

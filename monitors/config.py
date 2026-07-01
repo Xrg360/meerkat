@@ -33,6 +33,16 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(hosts, list) or not hosts:
         errors.append("internet.hosts must contain at least one host")
 
+    for index, site in enumerate(config.get("sites") or []):
+        if not isinstance(site, dict):
+            errors.append(f"sites[{index}] must be an object")
+            continue
+        if not site.get("name"):
+            errors.append(f"sites[{index}].name is required")
+        url = str(site.get("url") or "")
+        if not url.startswith(("http://", "https://")):
+            errors.append(f"sites[{index}].url must start with http:// or https://")
+
     if errors:
         raise ConfigError("; ".join(errors))
 

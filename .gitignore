@@ -8,3 +8,6 @@ state/state.json
 state/history.db
 state/history.db-*
 state/*.tmp
+server.*.log
+node_modules/
+.next/

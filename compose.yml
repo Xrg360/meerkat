@@ -11,5 +11,9 @@ services:
       - ./state:/app/state
     environment:
       TZ: Asia/Kolkata
+      PORT: 8710
+      MEERKAT_API_PORT: 8711
+      MEERKAT_API_BASE: http://127.0.0.1:8711
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      MEERKAT_ACTION_TOKEN: ${MEERKAT_ACTION_TOKEN:-}

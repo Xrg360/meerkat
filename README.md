@@ -15,12 +15,16 @@ Meerkats are natural lookouts: one watches the horizon, warns the group early, a
 - Active default route changes
 - Internet lost/restored using `1.1.1.1` and `8.8.8.8`
 - Docker container created, started, stopped, restarted, died, and removed events
+- Website uptime monitoring with HTTP status, latency, redirects, and optional keyword checks
 - CPU, RAM, disk, and CPU temperature threshold alerts
 - Persistent state in `state/state.json`
 - SQLite event history in `state/history.db`
 - Alert duration and cooldown controls
-- Telegram commands for status, health, network, Docker, silence, and resume
-- REST API, Prometheus metrics, and a built-in dashboard
+- Telegram commands for status, health, network, Docker, quick actions, silence, and resume
+- REST API and Prometheus metrics from the Python monitor API
+- Next.js web app with Home, Monitoring, and Settings pages
+- In-app alert popups and optional browser desktop notifications
+- Browser-local settings for theme, refresh interval, action token, and pinned Home monitors
 
 ## Server Defaults
 
@@ -30,43 +34,69 @@ The default config is already set for your server:
 - Wi-Fi: `wlp1s0`
 - Timezone: `Asia/Kolkata`
 
-## Setup
+## Docker Compose
 
-Create `config/config.yml` from the included defaults and add your Telegram credentials:
+Create a project directory:
 
-```yaml
-telegram:
-  bot_token: "123456:telegram-bot-token"
-  chat_id: "123456789"
+```bash
+mkdir -p /opt/meerkat/config /opt/meerkat/state
+cd /opt/meerkat
 ```
 
-You can also keep secrets out of the config file by setting environment variables:
+Create `compose.yml`:
+
+```yaml
+services:
+  meerkat:
+    image: ghcr.io/xrg360/meerkat:latest
+    container_name: meerkat
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config:/app/config
+      - ./state:/app/state
+    environment:
+      TZ: Asia/Kolkata
+      PORT: 8710
+      MEERKAT_API_PORT: 8711
+      MEERKAT_API_BASE: http://127.0.0.1:8711
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+      MEERKAT_ACTION_TOKEN: ${MEERKAT_ACTION_TOKEN}
+```
+
+Create `.env`:
 
 ```env
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
+MEERKAT_ACTION_TOKEN=change-this-long-random-token
 ```
 
-If using environment variables with Compose, add `env_file: .env` to `compose.yml`.
-
-## Run
+Create `config/config.yml` using the configuration example below, then start Meerkat:
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
-Dashboard and API:
+Web app and API:
 
 ```text
 http://<server-ip>:8710/
-http://<server-ip>:8710/api/status
-http://<server-ip>:8710/metrics
+http://<server-ip>:8710/monitoring
+http://<server-ip>:8710/settings
+http://<server-ip>:8711/api/status
+http://<server-ip>:8711/metrics
 ```
+
+The Next.js web app is served on port `8710`. The Python monitor API runs internally on `8711`, and the web app proxies backend requests through `/api/meerkat/*` using `MEERKAT_API_BASE=http://127.0.0.1:8711`.
 
 View logs:
 
 ```bash
-docker compose logs -f meerkat
+docker logs -f meerkat
 ```
 
 Stop:
@@ -75,44 +105,74 @@ Stop:
 docker compose down
 ```
 
-## Update Existing Server Install
-
-From this project folder on your local machine, copy the updated app files to your server:
+Update:
 
 ```bash
-scp -r app.py monitors Dockerfile compose.yml requirements.txt README.md config/config.yml xrg@<server-ip>:/srv/docker/meerkat/
+docker compose pull
+docker compose up -d
 ```
 
-Then rebuild and restart Meerkat on the server:
+Backup state:
 
 ```bash
-ssh xrg@<server-ip> "cd /srv/docker/meerkat && docker compose up -d --build"
+tar -czf meerkat-state-backup.tar.gz state
 ```
 
-Use your real server IP in place of `<server-ip>`. This keeps the existing `state/state.json` on the server, so Meerkat does not forget previous monitor states.
-
-If you intentionally want to copy everything, including `.env`, config, and state placeholders:
+## Docker CLI
 
 ```bash
-scp -r . xrg@<server-ip>:/srv/docker/meerkat/
+docker run -d \
+  --name meerkat \
+  --restart unless-stopped \
+  --privileged \
+  --network host \
+  -e TZ=Asia/Kolkata \
+  -e TELEGRAM_BOT_TOKEN=your-token \
+  -e TELEGRAM_CHAT_ID=your-chat-id \
+  -e MEERKAT_ACTION_TOKEN=change-this-long-random-token \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -v $(pwd)/config:/app/config \
+  -v $(pwd)/state:/app/state \
+  ghcr.io/xrg360/meerkat:latest
 ```
 
-Be careful with the full copy because it can overwrite server-side secrets or state files.
-
-If your server path is exactly `/srv/docker/meerkat`, this is the direct command shape:
+Build locally from source:
 
 ```bash
-scp -r app.py monitors tests Dockerfile compose.yml requirements.txt README.md config/config.yml xrg@pookie:/srv/docker/meerkat/
-ssh xrg@pookie "cd /srv/docker/meerkat && docker compose up -d --build"
+git clone https://github.com/xrg360/meerkat.git
+cd meerkat
+docker compose up -d --build
 ```
 
-If you are migrating from the old `/srv/docker/sentinel` path:
+## Local Development
+
+Run the Python monitor API on the internal API port:
 
 ```bash
-ssh xrg@pookie "mkdir -p /srv/docker/meerkat && cp -a /srv/docker/sentinel/state /srv/docker/meerkat/ 2>/dev/null || true"
-scp -r app.py monitors tests Dockerfile compose.yml requirements.txt README.md config/config.yml xrg@pookie:/srv/docker/meerkat/
-ssh xrg@pookie "cd /srv/docker/sentinel && docker compose down || true; cd /srv/docker/meerkat && docker compose up -d --build"
+MEERKAT_API_PORT=8711 python app.py
 ```
+
+PowerShell:
+
+```powershell
+$env:MEERKAT_API_PORT = "8711"
+python app.py
+```
+
+In another terminal, run the Next.js web app:
+
+```bash
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:8710/
+```
+
+If the Python API is not running, the Next.js app still loads and shows a backend-unavailable state.
 
 ## Telegram BotFather Commands
 
@@ -124,6 +184,11 @@ status - Show current monitor state
 health - Show CPU RAM disk and temperature
 network - Show interface and internet state
 docker - Show Docker containers
+sites - Show website monitors
+addsite - Add a website monitor. Usage: /addsite name https://example.com
+removesite - Remove a runtime website monitor. Usage: /removesite name
+restart - Restart a Docker container. Usage: /restart container_name
+clearcache - Clear Linux RAM caches
 silence - Pause monitor alerts
 resume - Resume monitor alerts
 help - Show available commands
@@ -178,8 +243,54 @@ api:
   host: 0.0.0.0
   port: 8710
 
+actions:
+  enabled: true
+  token:
+  blocked_containers:
+    - meerkat
+
+sites:
+  - name: Example
+    url: https://example.com
+    expected_status:
+      - 200
+    timeout: 10
+    follow_redirects: true
+    severity: critical
+    duration: 30s
+    cooldown: 15m
+
 interval: 30
 ```
+
+## Website Monitoring
+
+Meerkat can monitor public websites or internal services in addition to the host it runs on:
+
+```yaml
+sites:
+  - name: Blog
+    url: https://blog.example.com
+    expected_status:
+      - 200
+    timeout: 10
+    follow_redirects: true
+    keyword: "Welcome"
+    severity: critical
+    duration: 1m
+    cooldown: 15m
+```
+
+If `keyword` is set, the site is considered up only when the HTTP status matches and the response body contains that text.
+
+Runtime site monitors can also be added from Telegram or the web app Monitoring page:
+
+```text
+/addsite blog https://blog.example.com
+/removesite blog
+```
+
+Runtime-added sites are stored in `state/state.json`. YAML-defined sites remain the recommended option for infrastructure-as-code deployments.
 
 ## Alert Behavior
 
@@ -204,17 +315,58 @@ cpu:
 ## API
 
 ```text
-GET /health
-GET /status
-GET /api/status
-GET /api/health
-GET /api/network
-GET /api/docker
-GET /api/events
-GET /metrics
+Python API:
+
+GET  /health
+GET  /status
+GET  /api/status
+GET  /api/health
+GET  /api/network
+GET  /api/docker
+GET  /api/sites
+GET  /api/events
+GET  /metrics
+POST /clearRamCache
+POST /api/actions/clear-ram-cache
+POST /api/actions/docker/restart
+POST /api/actions/sites/add
+POST /api/actions/sites/remove
+POST /api/actions/events/clear
+
+Next.js proxy:
+
+GET  /api/meerkat/status
+GET  /api/meerkat/health
+GET  /api/meerkat/docker
+GET  /api/meerkat/sites
+POST /api/meerkat/actions/sites/add
+POST /api/meerkat/actions/sites/remove
+POST /api/meerkat/actions/docker/restart
+POST /api/meerkat/actions/clear-ram-cache
 ```
 
 `/metrics` is Prometheus-compatible.
+
+Action endpoints require `X-Meerkat-Action-Token`. Set it with `MEERKAT_ACTION_TOKEN` or `actions.token`.
+
+`POST /api/actions/docker/restart` expects JSON:
+
+```json
+{
+  "container": "cloudflared"
+}
+```
+
+Example:
+
+```bash
+curl -X POST http://127.0.0.1:8710/api/meerkat/actions/docker/restart \
+  -H "Content-Type: application/json" \
+  -H "X-Meerkat-Action-Token: change-this-long-random-token" \
+  -d '{"container":"cloudflared"}'
+```
+
+For security, action endpoints are intended for trusted LAN deployments or reverse proxies with authentication. The Meerkat container blocks restarting itself by default through `actions.blocked_containers`.
 
 ## State Behavior
 

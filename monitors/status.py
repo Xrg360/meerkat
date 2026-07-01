@@ -14,12 +14,14 @@ class StatusService:
         self.history = history
 
     def status(self) -> dict[str, Any]:
+        route = self.state.get("changes.network.route.value")
         return {
             "alerts_silenced": self.state.get("alerts.silenced", False),
             "internet_up": self.state.get("internet.up"),
             "ethernet_up": self.state.get("changes.network.ethernet.value"),
             "wifi_up": self.state.get("changes.network.wifi.value"),
-            "default_route": self.state.get("changes.network.route.value"),
+            "default_route": route,
+            "default_route_label": self.route_label(route),
             "active_alerts": self.active_alerts(),
             "recent_events": self.history.recent(20),
         }
@@ -50,9 +52,11 @@ class StatusService:
                 "has_ip": status.has_ip,
                 "up": status.up,
             }
+        route = get_default_route()
         return {
             "interfaces": interfaces,
-            "default_route": get_default_route(),
+            "default_route": route,
+            "default_route_label": self.route_label(route),
             "internet_up": self.state.get("internet.up"),
         }
 
@@ -67,6 +71,15 @@ class StatusService:
             return {"available": False, "error": str(exc), "containers": []}
         return {"available": True, "containers": containers}
 
+    def sites(self) -> dict[str, Any]:
+        sites = self.state.get("sites.status", [])
+        return {
+            "total": len(sites),
+            "up": len([site for site in sites if site.get("up") is True]),
+            "down": len([site for site in sites if site.get("up") is False]),
+            "sites": sites,
+        }
+
     def active_alerts(self) -> list[str]:
         prefix = "alerts."
         suffix = ".notified"
@@ -75,3 +88,13 @@ class StatusService:
             if key.startswith(prefix) and key.endswith(suffix) and value is True:
                 active.append(key.removeprefix(prefix).removesuffix(suffix))
         return sorted(active)
+
+    def route_label(self, route: str | None) -> str:
+        if not route:
+            return "unknown"
+        network_config = self.config.get("network", {}) or {}
+        if route == network_config.get("ethernet"):
+            return f"wired/eth ({route})"
+        if route == network_config.get("wifi"):
+            return f"wifi ({route})"
+        return f"other ({route})"
