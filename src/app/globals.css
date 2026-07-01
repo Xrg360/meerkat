@@ -194,6 +194,10 @@ h3 {
   justify-content: flex-end;
 }
 
+.mobile-only {
+  display: none;
+}
+
 .top-actions a,
 .top-actions button {
   width: auto;
@@ -226,7 +230,7 @@ h3 {
 }
 
 .summary {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 14px;
 }
 
@@ -595,12 +599,24 @@ h3 {
 }
 
 .toast {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-left: 4px solid var(--bad);
   border-radius: 8px;
   box-shadow: var(--shadow);
   padding: 12px;
+}
+
+.toast button {
+  width: 28px;
+  min-height: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  line-height: 1;
 }
 
 .skeleton {
@@ -684,7 +700,11 @@ h3 {
   }
 
   .nav {
-    grid-template-columns: 1fr;
+    display: none;
+  }
+
+  .mobile-only {
+    display: inline-flex;
   }
 
   .topbar,
@@ -695,7 +715,7 @@ h3 {
   .top-actions {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .top-actions a,

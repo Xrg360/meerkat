@@ -202,6 +202,38 @@ In BotFather:
 
 Select your Meerkat bot, then paste the command list above.
 
+## Telegram Troubleshooting
+
+Set either env naming style:
+
+```env
+TELEGRAM_BOT_TOKEN=123456:abc...
+TELEGRAM_CHAT_ID=123456789
+```
+
+or:
+
+```env
+MEERKAT_TELEGRAM_BOT_TOKEN=123456:abc...
+MEERKAT_TELEGRAM_CHAT_ID=123456789
+```
+
+After `docker compose up -d --build`, check:
+
+```bash
+docker logs meerkat | grep Telegram
+```
+
+Expected when configured:
+
+```text
+Telegram enabled for chat_id=...
+Telegram command listener connected as @...
+Telegram command listener started
+```
+
+If you see `Telegram is disabled`, the container did not receive the token/chat id. If messages send but commands do not respond, send `/start` to the bot once from the configured chat and confirm the `TELEGRAM_CHAT_ID` matches that chat.
+
 ## Configuration
 
 ```yaml

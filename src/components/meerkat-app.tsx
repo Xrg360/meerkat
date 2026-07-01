@@ -18,6 +18,9 @@ type EventItem = {
 type StatusPayload = {
   alerts_silenced: boolean;
   internet_up: boolean | null;
+  ethernet_up: boolean | null;
+  wifi_up: boolean | null;
+  default_route_label?: string;
   active_alerts: string[];
   recent_events: EventItem[];
 };
@@ -196,6 +199,8 @@ function Summary({ data }: { data: DataState }) {
   const running = data.docker.containers.filter((container) => container.status === "running").length;
   const items = [
     ["Internet", statusLabel(data.status.internet_up), data.status.internet_up ? "Reachable" : "Probe failing"],
+    ["Ethernet", statusLabel(data.status.ethernet_up), data.status.default_route_label?.includes("eth") ? "Default route" : "Interface state"],
+    ["Wi-Fi", statusLabel(data.status.wifi_up), data.status.default_route_label?.includes("wifi") ? "Default route" : "Interface state"],
     ["Alerts", String(data.status.active_alerts.length), data.status.alerts_silenced ? "Silenced" : "Active"],
     ["Containers", `${running}/${data.docker.containers.length}`, data.docker.available ? "Docker connected" : "Docker unavailable"],
     ["Sites", `${data.sites.up}/${data.sites.total}`, data.sites.down ? `${data.sites.down} down` : "All up"],
@@ -542,7 +547,7 @@ export function MeerkatApp({ page }: { page: Page }) {
             </div>
           </div>
           <div className="top-actions">
-            <Link href="/" className={page === "home" ? "active" : ""}>
+            <Link href="/" className={`mobile-only ${page === "home" ? "active" : ""}`}>
               Home
             </Link>
             <Link href="/monitoring" className={page === "monitoring" ? "primary" : ""}>
@@ -756,8 +761,13 @@ export function MeerkatApp({ page }: { page: Page }) {
       <div className="toast-stack">
         {toasts.map((toast) => (
           <div className="toast" key={toast.id}>
-            <div className="event-title">{toast.title}</div>
-            <div className="event-body">{toast.body}</div>
+            <div>
+              <div className="event-title">{toast.title}</div>
+              <div className="event-body">{toast.body}</div>
+            </div>
+            <button aria-label="Dismiss notification" onClick={() => setToasts((current) => current.filter((item) => item.id !== toast.id))}>
+              x
+            </button>
           </div>
         ))}
       </div>
