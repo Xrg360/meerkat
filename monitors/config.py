@@ -1,5 +1,7 @@
 from typing import Any
 
+from monitors.alerts import parse_duration
+
 
 class ConfigError(ValueError):
     pass
@@ -27,6 +29,15 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
     network = config.get("network", {}) or {}
     if not network.get("ethernet") and not network.get("wifi"):
         errors.append("at least one network interface must be configured")
+
+    auto_heal = config.get("auto_heal", {}) or {}
+    if auto_heal:
+        try:
+            interval = parse_duration(auto_heal.get("interval"), 300)
+            if interval < 60:
+                errors.append("auto_heal.interval must be >= 60 seconds")
+        except (TypeError, ValueError):
+            errors.append("auto_heal.interval must be a duration")
 
     internet = config.get("internet", {}) or {}
     hosts = internet.get("hosts") or []

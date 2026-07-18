@@ -1,5 +1,7 @@
 import platform
+import shutil
 import subprocess
+import time
 from urllib.parse import urlparse
 from typing import Any
 
@@ -55,6 +57,50 @@ class ActionService:
             return {"ok": False, "error": str(exc)}
 
         return {"ok": True, "message": f"Container restarted: {name}"}
+
+    def start_container(self, name: str) -> dict[str, Any]:
+        if not self.enabled:
+            return {"ok": False, "error": "actions are disabled"}
+        name = name.strip()
+        if not name:
+            return {"ok": False, "error": "container name is required"}
+        if name in self.blocked_containers:
+            return {"ok": False, "error": f"container start is blocked: {name}"}
+
+        try:
+            import docker
+
+            client = docker.from_env()
+            container = client.containers.get(name)
+            container.start()
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+        return {"ok": True, "message": f"Container started: {name}"}
+
+    def restart_network_interface(self, interface: str) -> dict[str, Any]:
+        if not self.enabled:
+            return {"ok": False, "error": "actions are disabled"}
+        interface = interface.strip()
+        if not interface:
+            return {"ok": False, "error": "interface name is required"}
+        if platform.system().lower() != "linux":
+            return {"ok": False, "error": "network interface restart is only supported on Linux"}
+
+        try:
+            subprocess.run(["ip", "link", "set", "dev", interface, "down"], check=True, timeout=10, stderr=subprocess.PIPE, text=True)
+            time.sleep(2)
+            subprocess.run(["ip", "link", "set", "dev", interface, "up"], check=True, timeout=10, stderr=subprocess.PIPE, text=True)
+            if shutil.which("dhclient"):
+                subprocess.run(["dhclient", "-1", interface], check=False, timeout=30, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+            elif shutil.which("networkctl"):
+                subprocess.run(["networkctl", "renew", interface], check=False, timeout=30, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+        except subprocess.CalledProcessError as exc:
+            return {"ok": False, "error": (exc.stderr or str(exc)).strip()}
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return {"ok": False, "error": str(exc)}
+
+        return {"ok": True, "message": f"Network interface restarted: {interface}"}
 
     def add_site(self, site: dict[str, Any]) -> dict[str, Any]:
         if not self.enabled:

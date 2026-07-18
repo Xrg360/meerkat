@@ -42,6 +42,15 @@ actions:
   blocked_containers:
     - meerkat
 
+auto_heal:
+  enabled: true
+  interval: 300
+  repair_cooldown: 300
+  containers:
+    enabled: true
+  network:
+    enabled: true
+
 sites:
   - name: Cloudflare DNS
     url: https://1.1.1.1

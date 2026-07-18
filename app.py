@@ -10,6 +10,7 @@ import yaml
 from monitors.actions import ActionService
 from monitors.alerts import AlertManager
 from monitors.api import ApiServer
+from monitors.autofix import AutoHealMonitor
 from monitors.commands import TelegramCommandMonitor
 from monitors.config import validate_config
 from monitors.cpu import check_cpu
@@ -64,6 +65,8 @@ def main() -> int:
     status_service = StatusService(config, state, history)
     stopped = Event()
 
+    auto_heal_monitor = AutoHealMonitor(config, state, alerts, action_service)
+    auto_heal_monitor.start()
     docker_monitor = DockerEventMonitor(state, alerts)
     docker_monitor.start()
     command_monitor = TelegramCommandMonitor(config, state, notifier, status_service, action_service)
@@ -74,6 +77,7 @@ def main() -> int:
     def handle_signal(signum: int, _frame: Any) -> None:
         logging.info("Received signal %s, shutting down", signum)
         stopped.set()
+        auto_heal_monitor.stop()
         docker_monitor.stop()
         command_monitor.stop()
         api_server.stop()

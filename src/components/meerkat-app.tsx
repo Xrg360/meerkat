@@ -21,6 +21,12 @@ type StatusPayload = {
   ethernet_up: boolean | null;
   wifi_up: boolean | null;
   default_route_label?: string;
+  auto_heal?: {
+    enabled: boolean;
+    interval: number | string;
+    active_containers: string[];
+    active_network_interfaces: string[];
+  };
   active_alerts: string[];
   recent_events: EventItem[];
 };
@@ -197,12 +203,15 @@ function Summary({ data }: { data: DataState }) {
   }
 
   const running = data.docker.containers.filter((container) => container.status === "running").length;
+  const autoHealCount =
+    (data.status.auto_heal?.active_containers?.length ?? 0) + (data.status.auto_heal?.active_network_interfaces?.length ?? 0);
   const items = [
     ["Internet", statusLabel(data.status.internet_up), data.status.internet_up ? "Reachable" : "Probe failing"],
     ["Ethernet", statusLabel(data.status.ethernet_up), data.status.default_route_label?.includes("eth") ? "Default route" : "Interface state"],
     ["Wi-Fi", statusLabel(data.status.wifi_up), data.status.default_route_label?.includes("wifi") ? "Default route" : "Interface state"],
     ["Alerts", String(data.status.active_alerts.length), data.status.alerts_silenced ? "Silenced" : "Active"],
     ["Containers", `${running}/${data.docker.containers.length}`, data.docker.available ? "Docker connected" : "Docker unavailable"],
+    ["Auto-heal", data.status.auto_heal?.enabled ? "on" : "off", data.status.auto_heal?.enabled ? `${autoHealCount} active tracked` : "Disabled"],
     ["Sites", `${data.sites.up}/${data.sites.total}`, data.sites.down ? `${data.sites.down} down` : "All up"],
   ];
 

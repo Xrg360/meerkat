@@ -20,6 +20,7 @@ Meerkats are natural lookouts: one watches the horizon, warns the group early, a
 - Persistent state in `state/state.json`
 - SQLite event history in `state/history.db`
 - Alert duration and cooldown controls
+- Auto-heal loop every 5 minutes for previously active Docker containers, Ethernet, and Wi-Fi
 - Telegram commands for status, health, network, Docker, quick actions, silence, and resume
 - REST API and Prometheus metrics from the Python monitor API
 - Next.js web app with Home, Monitoring, and Settings pages
@@ -281,6 +282,15 @@ actions:
   blocked_containers:
     - meerkat
 
+auto_heal:
+  enabled: true
+  interval: 300
+  repair_cooldown: 300
+  containers:
+    enabled: true
+  network:
+    enabled: true
+
 sites:
   - name: Example
     url: https://example.com
@@ -399,6 +409,17 @@ curl -X POST http://127.0.0.1:8710/api/meerkat/actions/docker/restart \
 ```
 
 For security, action endpoints are intended for trusted LAN deployments or reverse proxies with authentication. The Meerkat container blocks restarting itself by default through `actions.blocked_containers`.
+
+## Auto-Heal Cron
+
+Meerkat runs an internal cron-style auto-heal loop every 5 minutes by default:
+
+- Docker containers that were previously observed as `running` are started again if they are later found stopped, exited, or dead.
+- Configured Ethernet and Wi-Fi interfaces that were previously observed as up are bounced with `ip link set dev <interface> down/up` if they later drop.
+- Repairs are recorded in event history and sent through Telegram.
+- `actions.blocked_containers` is respected, so Meerkat does not restart itself by default.
+
+The Docker container must run with host networking and enough privileges to repair interfaces. The provided Compose file already uses `privileged: true` and `network_mode: host`.
 
 ## State Behavior
 

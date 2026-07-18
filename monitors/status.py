@@ -22,6 +22,12 @@ class StatusService:
             "wifi_up": self.state.get("changes.network.wifi.value"),
             "default_route": route,
             "default_route_label": self.route_label(route),
+            "auto_heal": {
+                "enabled": bool((self.config.get("auto_heal", {}) or {}).get("enabled", True)),
+                "interval": (self.config.get("auto_heal", {}) or {}).get("interval", 300),
+                "active_containers": self.state.get("auto_heal.containers.active", []),
+                "active_network_interfaces": self.state.get("auto_heal.network.active", []),
+            },
             "active_alerts": self.active_alerts(),
             "recent_events": self.history.recent(20),
         }
